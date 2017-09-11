@@ -52,12 +52,12 @@ type Listener struct {
 	l net.Listener
 }
 
-func New(logWriter io.Writer) *Server {
+func New(logWriter io.Writer, dbPath string) *Server {
 	return &Server{
 		Shutdown: make(chan bool),
 		SignalHandler: make(chan os.Signal),
 		Logger: log.New(logWriter, "[NETWORK] ", log.LstdFlags),
-		Storage: storage.New(logWriter),
+		Storage: storage.New(logWriter, dbPath),
 		listeners: make([]*Listener, 0),
 		logWriter: logWriter,
 	}
