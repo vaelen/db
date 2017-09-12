@@ -28,10 +28,10 @@ import (
 	"path/filepath"
 )
 
-type IdType string
+type IDType string
 type StorageType string
 
-func (id IdType) String() string {
+func (id IDType) String() string {
 	return string(id)
 }
 
@@ -40,19 +40,19 @@ func (value StorageType) String() string {
 }
 
 type GetRequest struct {
-	Id     IdType
+	ID     IDType
 	Result chan Result
 }
 
 type UpdateRequest struct {
-	Id     IdType
+	ID     IDType
 	Value  StorageType
 	Result chan Result
 }
 
 type Result struct {
 	Error error
-	Id    IdType
+	ID    IDType
 	Value StorageType
 }
 
@@ -62,7 +62,7 @@ type Storage struct {
 	Shutdown chan bool
 	Logger   *log.Logger
 	Path     string
-	storage  map[IdType]StorageType
+	storage  map[IDType]StorageType
 	dirty    bool
 }
 
@@ -73,7 +73,7 @@ func New(logWriter io.Writer, dbPath string) *Storage {
 		Shutdown: make(chan bool),
 		Logger:   log.New(logWriter, "[STORAGE] ", log.LstdFlags),
 		Path:     dbPath,
-		storage:  make(map[IdType]StorageType),
+		storage:  make(map[IDType]StorageType),
 	}
 	db.load()
 	go db.Start()
@@ -86,18 +86,18 @@ func (db *Storage) Start() {
 	for {
 		select {
 		case get := <-db.Get:
-			value, error := db.getValue(get.Id)
+			value, error := db.getValue(get.ID)
 			result := Result{
 				Error: error,
-				Id:    get.Id,
+				ID:    get.ID,
 				Value: value,
 			}
 			get.Result <- result
 		case update := <-db.Update:
-			value, error := db.setValue(update.Id, update.Value)
+			value, error := db.setValue(update.ID, update.Value)
 			result := Result{
 				Error: error,
-				Id:    update.Id,
+				ID:    update.ID,
 				Value: value,
 			}
 			update.Result <- result
@@ -152,7 +152,7 @@ func (db *Storage) load() {
 	db.Logger.Printf("Storage loaded: %s\n", filename)
 }
 
-func (db *Storage) getValue(id IdType) (StorageType, error) {
+func (db *Storage) getValue(id IDType) (StorageType, error) {
 	value, ok := db.storage[id]
 	if !ok {
 		value = ""
@@ -161,7 +161,7 @@ func (db *Storage) getValue(id IdType) (StorageType, error) {
 	return value, nil
 }
 
-func (db *Storage) setValue(id IdType, value StorageType) (StorageType, error) {
+func (db *Storage) setValue(id IDType, value StorageType) (StorageType, error) {
 	db.storage[id] = value
 	db.Logger.Printf("Update - Key: %s, Value: %s\n", id, value)
 	return value, nil

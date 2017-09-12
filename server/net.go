@@ -42,12 +42,12 @@ const (
 
 type Command struct {
 	Type  CommandType
-	Id    string
+	ID    string
 	Value string
 }
 
 type Response struct {
-	Id    string
+	ID    string
 	Value string
 	Error string
 }
@@ -196,7 +196,7 @@ func (s *Server) connectionHandler(c net.Conn) {
 		} else if err != nil {
 			response.Error = err.Error()
 		} else {
-			id := storage.IdType(command.Id)
+			id := storage.IDType(command.ID)
 			value := storage.StorageType(command.Value)
 			switch command.Type {
 			case TimeCommand:
@@ -204,14 +204,14 @@ func (s *Server) connectionHandler(c net.Conn) {
 					t.Format(time.RFC3339))
 			case GetCommand:
 				v, err := s.get(id)
-				response.Id = id.String()
+				response.ID = id.String()
 				response.Value = v.String()
 				if err != nil {
 					response.Error = err.Error()
 				}
 			case UpdateCommand:
 				v, err := s.update(id, value)
-				response.Id = id.String()
+				response.ID = id.String()
 				response.Value = v.String()
 				if err != nil {
 					response.Error = err.Error()
@@ -224,9 +224,9 @@ func (s *Server) connectionHandler(c net.Conn) {
 	c.Close()
 }
 
-func (s *Server) get(id storage.IdType) (storage.StorageType, error) {
+func (s *Server) get(id storage.IDType) (storage.StorageType, error) {
 	request := storage.GetRequest{
-		Id:     id,
+		ID:     id,
 		Result: make(chan storage.Result),
 	}
 	s.Storage.Get <- request
@@ -234,9 +234,9 @@ func (s *Server) get(id storage.IdType) (storage.StorageType, error) {
 	return result.Value, result.Error
 }
 
-func (s *Server) update(id storage.IdType, value storage.StorageType) (storage.StorageType, error) {
+func (s *Server) update(id storage.IDType, value storage.StorageType) (storage.StorageType, error) {
 	request := storage.UpdateRequest{
-		Id:     id,
+		ID:     id,
 		Value:  value,
 		Result: make(chan storage.Result),
 	}

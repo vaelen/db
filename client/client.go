@@ -96,7 +96,7 @@ func (c *Client) Time() (string, error) {
 func (c *Client) Get(id string) (string, error) {
 	command := server.Command{
 		Type: server.GetCommand,
-		Id:   id,
+		ID:   id,
 	}
 	response := c.Command(command)
 	if response.Error != "" {
@@ -109,7 +109,7 @@ func (c *Client) Get(id string) (string, error) {
 func (c *Client) Update(id string, value string) error {
 	command := server.Command{
 		Type:  server.UpdateCommand,
-		Id:    id,
+		ID:    id,
 		Value: value,
 	}
 	response := c.Command(command)
