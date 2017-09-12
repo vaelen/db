@@ -23,7 +23,7 @@ import (
 	"io"
 	"log"
 	"os"
-	
+
 	"encoding/gob"
 	"path/filepath"
 )
@@ -40,40 +40,40 @@ func (value StorageType) String() string {
 }
 
 type GetRequest struct {
-	Id IdType
+	Id     IdType
 	Result chan Result
 }
 
 type UpdateRequest struct {
-	Id IdType
-	Value StorageType
+	Id     IdType
+	Value  StorageType
 	Result chan Result
 }
 
 type Result struct {
 	Error error
-	Id IdType
+	Id    IdType
 	Value StorageType
 }
 
 type Storage struct {
-	Get chan GetRequest
-	Update chan UpdateRequest
+	Get      chan GetRequest
+	Update   chan UpdateRequest
 	Shutdown chan bool
-	Logger *log.Logger
-	Path string
-	storage map[IdType]StorageType
-	dirty bool
+	Logger   *log.Logger
+	Path     string
+	storage  map[IdType]StorageType
+	dirty    bool
 }
 
 func New(logWriter io.Writer, dbPath string) *Storage {
-	db := &Storage {
-		Get: make(chan GetRequest),
-		Update: make(chan UpdateRequest),
+	db := &Storage{
+		Get:      make(chan GetRequest),
+		Update:   make(chan UpdateRequest),
 		Shutdown: make(chan bool),
-		Logger: log.New(logWriter, "[STORAGE] ", log.LstdFlags),
-		Path: dbPath,
-		storage: make(map[IdType]StorageType),
+		Logger:   log.New(logWriter, "[STORAGE] ", log.LstdFlags),
+		Path:     dbPath,
+		storage:  make(map[IdType]StorageType),
 	}
 	db.load()
 	go db.Start()
@@ -87,17 +87,17 @@ func (db *Storage) Start() {
 		select {
 		case get := <-db.Get:
 			value, error := db.getValue(get.Id)
-			result := Result {
+			result := Result{
 				Error: error,
-				Id: get.Id,
+				Id:    get.Id,
 				Value: value,
 			}
 			get.Result <- result
 		case update := <-db.Update:
 			value, error := db.setValue(update.Id, update.Value)
-			result := Result {
+			result := Result{
 				Error: error,
-				Id: update.Id,
+				Id:    update.Id,
 				Value: value,
 			}
 			update.Result <- result
@@ -120,7 +120,7 @@ func (db *Storage) Start() {
 
 func (db *Storage) save() {
 	filename := filepath.Join(db.Path, "storage.gob")
-	f, err := os.OpenFile(filename, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0640)
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 	if err != nil {
 		db.Logger.Fatalf("Could not open file for saving. File: %s, Error: %s\n", filename, err.Error())
 		return

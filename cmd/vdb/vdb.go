@@ -20,22 +20,22 @@ along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"os"
-	"log"
-	"github.com/vaelen/db/server"
 	"github.com/vaelen/db/client"
+	"github.com/vaelen/db/server"
+	"log"
+	"os"
 )
 
 func main() {
 	c := client.New(os.Stderr)
-	err := c.Connect(server.ListenAddress{ NetworkType: "tcp", Address: "localhost:5555" })
+	err := c.Connect(server.ListenAddress{NetworkType: "tcp", Address: "localhost:5555"})
 	if err != nil {
 		log.Fatalf("Connect Error: %s\n", err.Error())
 	}
 
 	id := "foo"
 	value := "bar"
-	
+
 	time, err := c.Time()
 	if err != nil {
 		log.Fatalf("Time Error: %s\n", err.Error())

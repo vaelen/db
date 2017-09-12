@@ -41,51 +41,51 @@ const (
 )
 
 type Command struct {
-	Type CommandType
-	Id string
+	Type  CommandType
+	Id    string
 	Value string
 }
 
 type Response struct {
-	Id string
+	Id    string
 	Value string
 	Error string
 }
 
 type Server struct {
-	Shutdown chan bool
+	Shutdown      chan bool
 	SignalHandler chan os.Signal
-	Logger *log.Logger
-	Storage *storage.Storage
-	listeners []*Listener
-	logWriter io.Writer
+	Logger        *log.Logger
+	Storage       *storage.Storage
+	listeners     []*Listener
+	logWriter     io.Writer
 }
 
 type ListenAddress struct {
 	NetworkType string
-	Address string
+	Address     string
 }
 
 type Listener struct {
 	Shutdown chan bool
-	l net.Listener
+	l        net.Listener
 }
 
 func New(logWriter io.Writer, dbPath string) *Server {
 	return &Server{
-		Shutdown: make(chan bool),
+		Shutdown:      make(chan bool),
 		SignalHandler: make(chan os.Signal),
-		Logger: log.New(logWriter, "[NETWORK] ", log.LstdFlags),
-		Storage: storage.New(logWriter, dbPath),
-		listeners: make([]*Listener, 0),
-		logWriter: logWriter,
+		Logger:        log.New(logWriter, "[NETWORK] ", log.LstdFlags),
+		Storage:       storage.New(logWriter, dbPath),
+		listeners:     make([]*Listener, 0),
+		logWriter:     logWriter,
 	}
 }
 
 func NewListener(l net.Listener) *Listener {
-	return &Listener {
+	return &Listener{
 		Shutdown: make(chan bool),
-		l: l,
+		l:        l,
 	}
 }
 
@@ -95,7 +95,7 @@ func (s *Server) Start(addresses []ListenAddress) {
 	// Open network listeners
 	for _, address := range addresses {
 		l, err := s.Listen(address)
-		if (err != nil) {
+		if err != nil {
 			s.Logger.Printf("Error: %s\n", err.Error)
 			continue
 		}
@@ -125,7 +125,7 @@ func (s *Server) Start(addresses []ListenAddress) {
 	}(s)
 
 	s.Logger.Printf("Ready\n")
-	
+
 	// Main processing loop
 	for {
 		select {
@@ -162,7 +162,7 @@ func (s *Server) acceptConnections(l *Listener) {
 	defer l.l.Close()
 	for {
 		select {
-		case <- l.Shutdown:
+		case <-l.Shutdown:
 			break
 		default:
 			tcpL, ok := l.l.(*net.TCPListener)
@@ -220,13 +220,13 @@ func (s *Server) connectionHandler(c net.Conn) {
 		}
 		enc.Encode(&response)
 	}
-	
+
 	c.Close()
 }
 
 func (s *Server) get(id storage.IdType) (storage.StorageType, error) {
-	request := storage.GetRequest {
-		Id: id,
+	request := storage.GetRequest{
+		Id:     id,
 		Result: make(chan storage.Result),
 	}
 	s.Storage.Get <- request
@@ -235,9 +235,9 @@ func (s *Server) get(id storage.IdType) (storage.StorageType, error) {
 }
 
 func (s *Server) update(id storage.IdType, value storage.StorageType) (storage.StorageType, error) {
-	request := storage.UpdateRequest {
-		Id: id,
-		Value: value,
+	request := storage.UpdateRequest{
+		Id:     id,
+		Value:  value,
 		Result: make(chan storage.Result),
 	}
 	s.Storage.Update <- request

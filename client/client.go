@@ -31,7 +31,7 @@ import (
 
 type Client struct {
 	Logger *log.Logger
-	conn net.Conn
+	conn   net.Conn
 }
 
 func New(logWriter io.Writer) *Client {
@@ -61,24 +61,24 @@ func (c *Client) Command(command server.Command) server.Response {
 		response.Error = "Not Connected"
 		return response
 	}
-	
+
 	enc := encoder.NewEncoder(c.conn)
 	dec := encoder.NewDecoder(c.conn)
 
 	err := enc.Encode(&command)
-	if (err != nil) {
+	if err != nil {
 		c.Logger.Printf("Encoding error: %s\n", err.Error())
 		response.Error = err.Error()
 		return response
 	}
 
 	err = dec.Decode(&response)
-	if (err != nil) {
+	if err != nil {
 		c.Logger.Printf("Decoding error: %s\n", err.Error())
 		response.Error = err.Error()
 		return response
 	}
-	
+
 	return response
 }
 
@@ -96,7 +96,7 @@ func (c *Client) Time() (string, error) {
 func (c *Client) Get(id string) (string, error) {
 	command := server.Command{
 		Type: server.GetCommand,
-		Id: id,
+		Id:   id,
 	}
 	response := c.Command(command)
 	if response.Error != "" {
@@ -108,8 +108,8 @@ func (c *Client) Get(id string) (string, error) {
 
 func (c *Client) Update(id string, value string) error {
 	command := server.Command{
-		Type: server.UpdateCommand,
-		Id: id,
+		Type:  server.UpdateCommand,
+		Id:    id,
 		Value: value,
 	}
 	response := c.Command(command)
