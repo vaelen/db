@@ -29,17 +29,20 @@ import (
 	"github.com/vaelen/db/server"
 )
 
+// Client is an instance of the database client
 type Client struct {
 	Logger *log.Logger
 	conn   net.Conn
 }
 
+// New creates a new Client instance
 func New(logWriter io.Writer) *Client {
 	return &Client{
 		Logger: log.New(logWriter, "[CLIENT] ", log.LstdFlags),
 	}
 }
 
+// Connect to a database server
 func (c *Client) Connect(address server.ListenAddress) error {
 	if c.conn != nil {
 		c.conn.Close()
@@ -53,6 +56,7 @@ func (c *Client) Connect(address server.ListenAddress) error {
 	return nil
 }
 
+// Command excutes a database command on the server
 func (c *Client) Command(command server.Command) server.Response {
 	response := server.Response{}
 
@@ -82,6 +86,7 @@ func (c *Client) Command(command server.Command) server.Response {
 	return response
 }
 
+// Time returns the server's current timestamp
 func (c *Client) Time() (string, error) {
 	command := server.Command{
 		Type: server.TimeCommand,
@@ -93,6 +98,7 @@ func (c *Client) Time() (string, error) {
 	return response.Value, nil
 }
 
+// Get returns a value from the server
 func (c *Client) Get(id string) (string, error) {
 	command := server.Command{
 		Type: server.GetCommand,
@@ -102,10 +108,11 @@ func (c *Client) Get(id string) (string, error) {
 	if response.Error != "" {
 		return "", fmt.Errorf(response.Error)
 	}
-	c.Logger.Printf("Get - %s\n", response)
+	c.Logger.Printf("Get - %s\n", response.String())
 	return response.Value, nil
 }
 
+// Update sets a value on the server
 func (c *Client) Update(id string, value string) error {
 	command := server.Command{
 		Type:  server.UpdateCommand,
@@ -119,9 +126,24 @@ func (c *Client) Update(id string, value string) error {
 	return nil
 }
 
+// Close disconnects from database server
 func (c *Client) Close() {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
 	}
+}
+
+// Remove removes a value from the database server
+func (c *Client) Remove(id string) (string, error) {
+	command := server.Command{
+		Type: server.RemoveCommand,
+		ID:   id,
+	}
+	response := c.Command(command)
+	if response.Error != "" {
+		return "", fmt.Errorf(response.Error)
+	}
+	c.Logger.Printf("Remove - %s\n", response.String())
+	return response.Value, nil
 }

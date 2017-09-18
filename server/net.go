@@ -32,69 +32,85 @@ import (
 	"github.com/vaelen/db/storage"
 )
 
+// CommandType represents the type of a server command
 type CommandType uint8
 
 const (
-	TimeCommand   CommandType = 1
-	GetCommand    CommandType = 2
+	// TimeCommand returns the server's current timestamp.
+	TimeCommand CommandType = 1
+	// GetCommand returns a value
+	GetCommand CommandType = 2
+	// UpdateCommand updates a value
 	UpdateCommand CommandType = 3
+	// RemoveCommand removes a value
+	RemoveCommand CommandType = 4
 )
 
+// Command is a server command
 type Command struct {
 	Type  CommandType
 	ID    string
 	Value string
 }
 
+// Response is returned from a server command
 type Response struct {
 	ID    string
 	Value string
 	Error string
 }
 
+func (r *Response) String() string {
+	return fmt.Sprintf("Response [ID: %X, Value: %s, Error: %s]", r.ID, r.Value, r.Error)
+}
+
+// Server is an instance of the database server
 type Server struct {
 	Shutdown      chan bool
 	SignalHandler chan os.Signal
 	Logger        *log.Logger
 	Storage       *storage.Storage
-	listeners     []*Listener
+	listeners     []*listener
 	logWriter     io.Writer
 }
 
+// ListenAddress is a network address that the server should listen on
 type ListenAddress struct {
 	NetworkType string
 	Address     string
 }
 
-type Listener struct {
+type listener struct {
 	Shutdown chan bool
 	l        net.Listener
 }
 
+// New creates a new instance of the database server
 func New(logWriter io.Writer, dbPath string) *Server {
 	return &Server{
 		Shutdown:      make(chan bool),
 		SignalHandler: make(chan os.Signal),
 		Logger:        log.New(logWriter, "[NETWORK] ", log.LstdFlags),
 		Storage:       storage.New(logWriter, dbPath),
-		listeners:     make([]*Listener, 0),
+		listeners:     make([]*listener, 0),
 		logWriter:     logWriter,
 	}
 }
 
-func NewListener(l net.Listener) *Listener {
-	return &Listener{
+func newListener(l net.Listener) *listener {
+	return &listener{
 		Shutdown: make(chan bool),
 		l:        l,
 	}
 }
 
+// Start starts the database server
 func (s *Server) Start(addresses []ListenAddress) {
 	done := false
 	s.Logger.Printf("Starting...\n")
 	// Open network listeners
 	for _, address := range addresses {
-		l, err := s.Listen(address)
+		l, err := s.listen(address)
 		if err != nil {
 			s.Logger.Printf("Error: %s\n", err.Error)
 			continue
@@ -147,18 +163,18 @@ func (s *Server) Start(addresses []ListenAddress) {
 	s.Logger.Printf("Stopped\n")
 }
 
-func (s *Server) Listen(address ListenAddress) (*Listener, error) {
+func (s *Server) listen(address ListenAddress) (*listener, error) {
 	l, err := net.Listen(address.NetworkType, address.Address)
 	if err != nil {
 		return nil, err
 	}
 	s.Logger.Printf("Listening on %s %s.\n", address.NetworkType, address.Address)
-	listener := NewListener(l)
+	listener := newListener(l)
 	go s.acceptConnections(listener)
 	return listener, nil
 }
 
-func (s *Server) acceptConnections(l *Listener) {
+func (s *Server) acceptConnections(l *listener) {
 	defer l.l.Close()
 	for {
 		select {
@@ -196,26 +212,20 @@ func (s *Server) connectionHandler(c net.Conn) {
 		} else if err != nil {
 			response.Error = err.Error()
 		} else {
-			id := storage.IDType(command.ID)
-			value := storage.StorageType(command.Value)
+			id := command.ID
+			value := command.Value
 			switch command.Type {
 			case TimeCommand:
 				response.Value = fmt.Sprintf("Hello! The time is currently %s.\n",
 					t.Format(time.RFC3339))
 			case GetCommand:
-				v, err := s.get(id)
-				response.ID = id.String()
-				response.Value = v.String()
-				if err != nil {
-					response.Error = err.Error()
-				}
+				v := s.get(id)
+				response.ID = id
+				response.Value = v
 			case UpdateCommand:
-				v, err := s.update(id, value)
-				response.ID = id.String()
-				response.Value = v.String()
-				if err != nil {
-					response.Error = err.Error()
-				}
+				v := s.update(id, value)
+				response.ID = id
+				response.Value = v
 			}
 		}
 		enc.Encode(&response)
@@ -224,17 +234,18 @@ func (s *Server) connectionHandler(c net.Conn) {
 	c.Close()
 }
 
-func (s *Server) get(id storage.IDType) (storage.StorageType, error) {
+func (s *Server) get(id string) string {
 	request := storage.GetRequest{
 		ID:     id,
+		Remove: false,
 		Result: make(chan storage.Result),
 	}
 	s.Storage.Get <- request
 	result := <-request.Result
-	return result.Value, result.Error
+	return result.Value
 }
 
-func (s *Server) update(id storage.IDType, value storage.StorageType) (storage.StorageType, error) {
+func (s *Server) update(id string, value string) string {
 	request := storage.UpdateRequest{
 		ID:     id,
 		Value:  value,
@@ -242,5 +253,16 @@ func (s *Server) update(id storage.IDType, value storage.StorageType) (storage.S
 	}
 	s.Storage.Update <- request
 	result := <-request.Result
-	return result.Value, result.Error
+	return result.Value
+}
+
+func (s *Server) remove(id string) string {
+	request := storage.GetRequest{
+		ID:     id,
+		Remove: true,
+		Result: make(chan storage.Result),
+	}
+	s.Storage.Get <- request
+	result := <-request.Result
+	return result.Value
 }

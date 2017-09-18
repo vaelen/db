@@ -9,6 +9,7 @@ echo "Reformatting Source"
 echo "========================================"
 
 gofmt -w **/*.go
+goimports -w **/*.go
 
 echo "Building"
 echo "========================================"
