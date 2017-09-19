@@ -17,6 +17,10 @@ GNU General Public License for more details.
 along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 ******/
 
+// Package storage provides a thread safe hash table implementation.
+// The hash table is implemented internally as a tree structure and is self-pruning.
+// The hash table uses a 32-bit FNV hash and each node of the tree represents 1 byte in the hash.
+// The intention is to allow movement of entire nodes of the tree between storage instances.
 package storage
 
 import (
