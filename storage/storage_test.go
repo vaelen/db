@@ -35,8 +35,10 @@ func randomString(n int) string {
 	return string(b)
 }
 
-// TestStorage tests the storage instance
+// TestStorage tests a Storage instance
 func TestStorage(t *testing.T) {
+	t.Logf("Testing Storage\n")
+	
 	// Generate some random data
 	rand.Seed(time.Now().UnixNano())
 
@@ -80,6 +82,57 @@ func TestStorage(t *testing.T) {
 	t.Logf("Removing random strings\n")
 	for k := range m {
 		_ = s.Remove(k)
+	}
+
+}
+
+
+// TestHashtable tests a Hashtable instance
+func TestHashtable(t *testing.T) {
+	t.Logf("Testing Hashtable\n")
+	
+	// Generate some random data
+	rand.Seed(time.Now().UnixNano())
+
+	t.Logf("Generating random strings\n")
+
+	m := make(map[string]string)
+	for i := 0; i < 100000; i++ {
+		m[randomString(1000)] = randomString(1000)
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	// Create a Hashtable instance
+	h := NewHashtable()
+
+	t.Logf("Adding random strings\n")
+	for k, v := range m {
+		h.Set(k, v)
+	}
+
+	t.Logf("Modifying values\n")
+	for i := 0; i < 1000; i++ {
+		key := keys[i]
+		newValue := randomString(1000)
+		m[key] = newValue
+		h.Set(key, newValue)
+	}
+
+	t.Logf("Getting random strings\n")
+	for k, v := range m {
+		x := h.Get(k)
+		if x != v {
+			t.Errorf("Error Getting Value: Key: %s\n", k)
+		}
+	}
+
+	t.Logf("Removing random strings\n")
+	for k := range m {
+		h.Remove(k)
 	}
 
 }
