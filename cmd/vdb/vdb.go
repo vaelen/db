@@ -22,22 +22,10 @@ package main
 import (
 	"log"
 	"os"
-	"math/rand"
-	"time"
 
 	"github.com/vaelen/db/client"
 	"github.com/vaelen/db/server"
 )
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randomString(n int) string {
-    b := make([]rune, n)
-    for i := range b {
-        b[i] = letterRunes[rand.Intn(len(letterRunes))]
-    }
-    return string(b)
-}
 
 func main() {
 	c := client.New(os.Stderr)
@@ -72,38 +60,4 @@ func main() {
 		log.Fatalf("Remove Error: %s\n", err.Error())
 	}
 	log.Printf("Remove - Key: %s, Value: %s\n", id, oldValue)
-
-	// Generate some random data
-	rand.Seed(time.Now().UnixNano())
-
-	log.Printf("Generating random strings\n")
-	
-	m := make(map[string]string)
-	for i := 0; i < 100000; i++ {
-		m[randomString(1000)] = randomString(1000)
-	}
-
-	log.Printf("Sending random strings\n")
-	for k, v := range m {
-		c.Update(k, v)
-	}
-
-	log.Printf("Getting random strings\n")
-	failures := 0
-	for k, v := range m {
-		x, _ := c.Get(k)
-		if x != v {
-			failures++
-			log.Printf("Error Getting Value: Key: %s\n", k)
-		}
-	}
-
-	log.Printf("Removing random strings\n")
-	for k := range m {
-		_, _ = c.Remove(k)
-	}
-
-	log.Printf("%d failures\n", failures)
-
-
 }

@@ -235,34 +235,13 @@ func (s *Server) connectionHandler(c net.Conn) {
 }
 
 func (s *Server) get(id string) string {
-	request := storage.GetRequest{
-		ID:     id,
-		Remove: false,
-		Result: make(chan storage.Result),
-	}
-	s.Storage.Get <- request
-	result := <-request.Result
-	return result.Value
+	return s.Storage.Get(id)
 }
 
 func (s *Server) update(id string, value string) string {
-	request := storage.UpdateRequest{
-		ID:     id,
-		Value:  value,
-		Result: make(chan storage.Result),
-	}
-	s.Storage.Update <- request
-	result := <-request.Result
-	return result.Value
+	return s.Storage.Set(id, value)
 }
 
 func (s *Server) remove(id string) string {
-	request := storage.GetRequest{
-		ID:     id,
-		Remove: true,
-		Result: make(chan storage.Result),
-	}
-	s.Storage.Get <- request
-	result := <-request.Result
-	return result.Value
+	return s.Storage.Remove(id)
 }

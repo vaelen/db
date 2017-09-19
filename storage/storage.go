@@ -38,8 +38,8 @@ type GetRequest struct {
 	Result chan Result
 }
 
-// UpdateRequest is used to update a value in the storage tree.
-type UpdateRequest struct {
+// SetRequest is used to update a value in the storage tree.
+type SetRequest struct {
 	ID     string
 	Value  string
 	Result chan Result
@@ -161,9 +161,9 @@ func (n *Node) IsEmpty() bool {
 // Storage represents a storage tree instance
 type Storage struct {
 	// Get retrieves a value from storage, optionally removing it
-	Get chan GetRequest
+	getChannel chan GetRequest
 	// Update updates a value in storage
-	Update chan UpdateRequest
+	setChannel chan SetRequest
 	// GetNode retrieves a node from the storage tree, optionally removing it
 	GetNode chan GetNodeRequest
 	// UpdateNode updates a node in the storage tree
@@ -180,8 +180,8 @@ type Storage struct {
 // New creates a new Storage instance. It also loads the data file if it exists and starts the storage thread.
 func New(logWriter io.Writer, dbPath string) *Storage {
 	db := &Storage{
-		Get:        make(chan GetRequest),
-		Update:     make(chan UpdateRequest),
+		getChannel: make(chan GetRequest),
+		setChannel: make(chan SetRequest),
 		GetNode:    make(chan GetNodeRequest),
 		UpdateNode: make(chan UpdateNodeRequest),
 		Shutdown:   make(chan bool),
@@ -199,7 +199,7 @@ func (db *Storage) start() {
 	done := false
 	for {
 		select {
-		case get := <-db.Get:
+		case get := <-db.getChannel:
 			id := GetNodeLocator(get.ID)
 			node, path := db.findNode(id)
 			var value string
@@ -214,20 +214,20 @@ func (db *Storage) start() {
 				ID:    get.ID,
 				Value: value,
 			}
-			db.Logger.Printf("Get - Key: %s, Value: %s\n", get.ID, value)
+			//db.Logger.Printf("Get - Key: %s, Value: %s\n", get.ID, value)
 			get.Result <- result
-		case update := <-db.Update:
-			id := GetNodeLocator(update.ID)
-			node := db.setNodeValue(id, update.ID, update.Value)
+		case set := <-db.setChannel:
+			id := GetNodeLocator(set.ID)
+			node := db.setNodeValue(id, set.ID, set.Value)
 			if node != nil {
-				node.SetValue(update.ID, update.Value)
+				node.SetValue(set.ID, set.Value)
 			}
 			result := Result{
-				ID:    update.ID,
-				Value: update.Value,
+				ID:    set.ID,
+				Value: set.Value,
 			}
-			db.Logger.Printf("Update - Key: %s, Value: %s\n", update.ID, update.Value)
-			update.Result <- result
+			//db.Logger.Printf("Set - Key: %s, Value: %s\n", set.ID, set.Value)
+			set.Result <- result
 			db.save()
 		case getNode := <-db.GetNode:
 			node, _ := db.findNode(getNode.ID)
@@ -263,6 +263,9 @@ func (db *Storage) save() {
 		// TODO: Implement custom save/load routine
 		return
 	}
+	if db.Path == "" {
+		return
+	}
 	filename := filepath.Join(db.Path, "storage.gob")
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 	if err != nil {
@@ -280,6 +283,10 @@ func (db *Storage) save() {
 }
 
 func (db *Storage) load() {
+	if db.Path == "" {
+		return
+	}
+
 	filename := filepath.Join(db.Path, "storage.gob")
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0640)
 	if err != nil {
@@ -392,7 +399,7 @@ func (db *Storage) prune(id []byte, path []*Node) {
 
 	if node == nil || node.IsEmpty() {
 		// Prune node
-		db.Logger.Printf("Prune: Removed node %X\n", id)
+		//db.Logger.Printf("Prune: Removed node %X\n", id)
 		parent.Children[nodeID] = nil
 	}
 
@@ -405,4 +412,45 @@ func Hash(key string) uint32 {
 	h := fnv.New32()
 	h.Write([]byte(key))
 	return h.Sum32()
+}
+
+// Get returns the value of the given key
+func (db *Storage) Get(id string) string {
+	request := GetRequest{
+		ID:     id,
+		Remove: false,
+		Result: make(chan Result),
+	}
+	db.getChannel <- request
+	result := <-request.Result
+	return result.Value
+}
+
+// Set sets the value of the given key
+func (db *Storage) Set(id string, value string) string {
+	request := SetRequest{
+		ID:     id,
+		Value:  value,
+		Result: make(chan Result),
+	}
+	db.setChannel <- request
+	result := <-request.Result
+	return result.Value
+}
+
+// Remove removes the given key
+func (db *Storage) Remove(id string) string {
+	request := GetRequest{
+		ID:     id,
+		Remove: true,
+		Result: make(chan Result),
+	}
+	db.getChannel <- request
+	result := <-request.Result
+	return result.Value
+}
+
+// Close shuts down the storage instance
+func (db *Storage) Close() {
+	db.Shutdown <- true
 }
