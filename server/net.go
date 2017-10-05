@@ -199,7 +199,7 @@ func (s *DBServer) connectionHandler(c net.Conn) {
 				response.ID = id
 				response.Value = v
 			case api.Command_SET:
-				v := s.update(id, value)
+				v := s.set(id, value)
 				response.ID = id
 				response.Value = v
 			}
@@ -223,7 +223,7 @@ func (s *DBServer) get(id string) string {
 	return s.Storage.Get(id)
 }
 
-func (s *DBServer) update(id string, value string) string {
+func (s *DBServer) set(id string, value string) string {
 	return s.Storage.Set(id, value)
 }
 

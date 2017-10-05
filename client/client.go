@@ -125,8 +125,8 @@ func (c *DBClient) Get(id string) (string, error) {
 	return response.Value, nil
 }
 
-// Update sets a value on the server
-func (c *DBClient) Update(id string, value string) error {
+// Set sets a value on the server
+func (c *DBClient) Set(id string, value string) error {
 	command := &api.Command{
 		Type:  api.Command_SET,
 		ID:    id,

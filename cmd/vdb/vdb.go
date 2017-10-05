@@ -43,9 +43,9 @@ func main() {
 	}
 	log.Printf("Time - %s\n", ct)
 
-	err = c.Update(id, value)
+	err = c.Set(id, value)
 	if err != nil {
-		log.Fatalf("Update Error: %s\n", err.Error())
+		log.Fatalf("Set Error: %s\n", err.Error())
 	}
 	log.Printf("Set - Key: %s, Value: %s\n", id, value)
 

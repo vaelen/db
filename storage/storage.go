@@ -39,14 +39,14 @@ type GetRequest struct {
 	Result chan Result
 }
 
-// SetRequest is used to update a value in the storage tree.
+// SetRequest is used to set a value in the storage tree.
 type SetRequest struct {
 	ID     string
 	Value  string
 	Result chan Result
 }
 
-// Result is returned from Get and Update
+// Result is returned from Get and Set
 type Result struct {
 	ID    string
 	Value string
@@ -59,14 +59,14 @@ type GetNodeRequest struct {
 	Result chan NodeResult
 }
 
-// UpdateNodeRequest is used to update an entire node of the storage tree.
-type UpdateNodeRequest struct {
+// SetNodeRequest is used to set an entire node of the storage tree.
+type SetNodeRequest struct {
 	ID     NodeLocator
 	Value  *Node
 	Result chan NodeResult
 }
 
-// NodeResult is returned from GetNode and UpdateNode
+// NodeResult is returned from GetNode and SetNode
 type NodeResult struct {
 	ID    NodeLocator
 	Value *Node
@@ -76,12 +76,12 @@ type NodeResult struct {
 type Instance struct {
 	// Get retrieves a value from storage, optionally removing it
 	getChannel chan GetRequest
-	// Update updates a value in storage
+	// Set sets a value in storage
 	setChannel chan SetRequest
 	// GetNode retrieves a node from the storage tree, optionally removing it
 	GetNode chan GetNodeRequest
-	// UpdateNode updates a node in the storage tree
-	UpdateNode chan UpdateNodeRequest
+	// SetNode sets a node in the storage tree
+	SetNode chan SetNodeRequest
 	// Shutdown stops the storage worker thread
 	Shutdown chan bool
 	// Logger is the logger instance used by the storage instance
@@ -97,7 +97,7 @@ func New(logWriter io.Writer, dbPath string) *Instance {
 		getChannel: make(chan GetRequest),
 		setChannel: make(chan SetRequest),
 		GetNode:    make(chan GetNodeRequest),
-		UpdateNode: make(chan UpdateNodeRequest),
+		SetNode:    make(chan SetNodeRequest),
 		Shutdown:   make(chan bool),
 		Logger:     log.New(logWriter, "[STORAGE] ", log.LstdFlags),
 		Path:       dbPath,
@@ -143,13 +143,13 @@ func (db *Instance) start() {
 				Value: node,
 			}
 			getNode.Result <- result
-		case updateNode := <-db.UpdateNode:
-			node := db.storage.SetNode(updateNode.ID, updateNode.Value)
+		case setNode := <-db.SetNode:
+			node := db.storage.SetNode(setNode.ID, setNode.Value)
 			result := NodeResult{
-				ID:    updateNode.ID,
+				ID:    setNode.ID,
 				Value: node,
 			}
-			updateNode.Result <- result
+			setNode.Result <- result
 			db.save()
 		case <-db.Shutdown:
 			done = true
