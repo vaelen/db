@@ -36,7 +36,7 @@ func (m *Multiplexer) Send(message []byte) error {
 	buf := bytes.Buffer{}
 
 	sizeBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(sizeBytes[0:], uint64(len(message)))
+	binary.BigEndian.PutUint64(sizeBytes[0:], uint64(len(message)))
 	buf.Write(sizeBytes)
 
 	// Write message
@@ -59,7 +59,7 @@ func (m *Multiplexer) Receive() ([]byte, error) {
 		return nil, io.EOF
 	}
 
-	size := int64(binary.LittleEndian.Uint64(buf.Bytes()))
+	size := int64(binary.BigEndian.Uint64(buf.Bytes()))
 
 	buf.Reset()
 
