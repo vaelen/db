@@ -19,8 +19,8 @@ along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 
 package server
 
+//noinspection GoRedundantImportAlias
 import (
-	"fmt"
 	"hash/fnv"
 
 	uuid "github.com/satori/go.uuid"
@@ -39,6 +39,7 @@ type Chunk struct {
 // ClusterSize is an enumeration for keeping track of how large a cluster is
 type ClusterSize uint8
 
+//noinspection GoUnusedGlobalVariable
 var (
 	// SmallCluster is for a cluster of up to 256 shards
 	SmallCluster ClusterSize = 1
@@ -69,9 +70,4 @@ func Hash(s string) uint32 {
 	h := fnv.New32()
 	h.Write([]byte(s))
 	return h.Sum32()
-}
-
-// HashString returns the hash value for the given key as a hexadecimal string
-func HashString(s string) string {
-	return fmt.Sprintf("%X", Hash(s))
 }

@@ -30,22 +30,22 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// Client is an instance of the database client
-type Client struct {
+// DBClient is an instance of the database client
+type DBClient struct {
 	Logger *log.Logger
 	conn   net.Conn
 	m api.Multiplexer
 }
 
-// New creates a new Client instance
-func New(logWriter io.Writer) *Client {
-	return &Client{
+// New creates a new DBClient instance
+func New(logWriter io.Writer) *DBClient {
+	return &DBClient{
 		Logger: log.New(logWriter, "[CLIENT] ", log.LstdFlags),
 	}
 }
 
 // Connect to a database server
-func (c *Client) Connect(address server.ListenAddress) error {
+func (c *DBClient) Connect(address server.ListenAddress) error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
@@ -60,7 +60,7 @@ func (c *Client) Connect(address server.ListenAddress) error {
 }
 
 // Command executes a database command on the server
-func (c *Client) Command(command *api.Command) *api.Response {
+func (c *DBClient) Command(command *api.Command) *api.Response {
 	response := &api.Response{}
 
 	if c.conn == nil {
@@ -100,7 +100,7 @@ func (c *Client) Command(command *api.Command) *api.Response {
 }
 
 // Time returns the server's current timestamp
-func (c *Client) Time() (string, error) {
+func (c *DBClient) Time() (string, error) {
 	command := &api.Command{
 		Type: api.Command_TIME,
 	}
@@ -112,7 +112,7 @@ func (c *Client) Time() (string, error) {
 }
 
 // Get returns a value from the server
-func (c *Client) Get(id string) (string, error) {
+func (c *DBClient) Get(id string) (string, error) {
 	command := &api.Command{
 		Type: api.Command_GET,
 		ID:   id,
@@ -126,7 +126,7 @@ func (c *Client) Get(id string) (string, error) {
 }
 
 // Update sets a value on the server
-func (c *Client) Update(id string, value string) error {
+func (c *DBClient) Update(id string, value string) error {
 	command := &api.Command{
 		Type:  api.Command_SET,
 		ID:    id,
@@ -140,7 +140,7 @@ func (c *Client) Update(id string, value string) error {
 }
 
 // Close disconnects from database server
-func (c *Client) Close() {
+func (c *DBClient) Close() {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
@@ -148,7 +148,7 @@ func (c *Client) Close() {
 }
 
 // Remove removes a value from the database server
-func (c *Client) Remove(id string) (string, error) {
+func (c *DBClient) Remove(id string) (string, error) {
 	command := &api.Command{
 		Type: api.Command_REMOVE,
 		ID:   id,

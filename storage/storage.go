@@ -72,8 +72,8 @@ type NodeResult struct {
 	Value *Node
 }
 
-// Storage represents a storage tree instance
-type Storage struct {
+// Instance represents a storage tree instance
+type Instance struct {
 	// Get retrieves a value from storage, optionally removing it
 	getChannel chan GetRequest
 	// Update updates a value in storage
@@ -92,8 +92,8 @@ type Storage struct {
 }
 
 // New creates a new Storage instance. It also loads the data file if it exists and starts the storage thread.
-func New(logWriter io.Writer, dbPath string) *Storage {
-	db := &Storage{
+func New(logWriter io.Writer, dbPath string) *Instance {
+	db := &Instance{
 		getChannel: make(chan GetRequest),
 		setChannel: make(chan SetRequest),
 		GetNode:    make(chan GetNodeRequest),
@@ -108,7 +108,7 @@ func New(logWriter io.Writer, dbPath string) *Storage {
 	return db
 }
 
-func (db *Storage) start() {
+func (db *Instance) start() {
 	db.Logger.Printf("Started: %s\n", db.Path)
 	done := false
 	for {
@@ -162,7 +162,7 @@ func (db *Storage) start() {
 	db.Logger.Printf("Stopped\n")
 }
 
-func (db *Storage) save() {
+func (db *Instance) save() {
 	if true {
 		// TODO: Implement custom save/load routine
 		return
@@ -186,7 +186,7 @@ func (db *Storage) save() {
 	db.Logger.Printf("Storage saved: %s\n", filename)
 }
 
-func (db *Storage) load() {
+func (db *Instance) load() {
 	if db.Path == "" {
 		return
 	}
@@ -208,7 +208,7 @@ func (db *Storage) load() {
 }
 
 // Get returns the value of the given key
-func (db *Storage) Get(id string) string {
+func (db *Instance) Get(id string) string {
 	request := GetRequest{
 		ID:     id,
 		Remove: false,
@@ -220,7 +220,7 @@ func (db *Storage) Get(id string) string {
 }
 
 // Set sets the value of the given key
-func (db *Storage) Set(id string, value string) string {
+func (db *Instance) Set(id string, value string) string {
 	request := SetRequest{
 		ID:     id,
 		Value:  value,
@@ -232,7 +232,7 @@ func (db *Storage) Set(id string, value string) string {
 }
 
 // Remove removes the given key
-func (db *Storage) Remove(id string) string {
+func (db *Instance) Remove(id string) string {
 	request := GetRequest{
 		ID:     id,
 		Remove: true,
@@ -244,6 +244,6 @@ func (db *Storage) Remove(id string) string {
 }
 
 // Close shuts down the storage instance
-func (db *Storage) Close() {
+func (db *Instance) Close() {
 	db.Shutdown <- true
 }

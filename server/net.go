@@ -34,12 +34,12 @@ import (
 	"github.com/vaelen/db/api"
 )
 
-// Server is an instance of the database server
-type Server struct {
+// DBServer is an instance of the database server
+type DBServer struct {
 	Shutdown      chan bool
 	SignalHandler chan os.Signal
 	Logger        *log.Logger
-	Storage       *storage.Storage
+	Storage       *storage.Instance
 	listeners     []*listener
 	logWriter     io.Writer
 }
@@ -56,8 +56,8 @@ type listener struct {
 }
 
 // New creates a new instance of the database server
-func New(logWriter io.Writer, dbPath string) *Server {
-	return &Server{
+func New(logWriter io.Writer, dbPath string) *DBServer {
+	return &DBServer{
 		Shutdown:      make(chan bool),
 		SignalHandler: make(chan os.Signal),
 		Logger:        log.New(logWriter, "[NETWORK] ", log.LstdFlags),
@@ -75,7 +75,7 @@ func newListener(l net.Listener) *listener {
 }
 
 // Start starts the database server
-func (s *Server) Start(addresses []ListenAddress) {
+func (s *DBServer) Start(addresses []ListenAddress) {
 	done := false
 	s.Logger.Printf("Starting...\n")
 	// Open network listeners
@@ -90,7 +90,7 @@ func (s *Server) Start(addresses []ListenAddress) {
 
 	// Handle signals nicely
 	signal.Notify(s.SignalHandler, os.Interrupt, os.Kill)
-	go func(s *Server) {
+	go func(s *DBServer) {
 		for {
 			select {
 			case sig := <-s.SignalHandler:
@@ -133,7 +133,7 @@ func (s *Server) Start(addresses []ListenAddress) {
 	s.Logger.Printf("Stopped\n")
 }
 
-func (s *Server) listen(address ListenAddress) (*listener, error) {
+func (s *DBServer) listen(address ListenAddress) (*listener, error) {
 	l, err := net.Listen(address.NetworkType, address.Address)
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func (s *Server) listen(address ListenAddress) (*listener, error) {
 	return listener, nil
 }
 
-func (s *Server) acceptConnections(l *listener) {
+func (s *DBServer) acceptConnections(l *listener) {
 	defer l.l.Close()
 	for {
 		select {
@@ -165,7 +165,7 @@ func (s *Server) acceptConnections(l *listener) {
 	}
 }
 
-func (s *Server) connectionHandler(c net.Conn) {
+func (s *DBServer) connectionHandler(c net.Conn) {
 	// We don't do much yet
 	t := time.Now()
 
@@ -219,14 +219,14 @@ func (s *Server) connectionHandler(c net.Conn) {
 	c.Close()
 }
 
-func (s *Server) get(id string) string {
+func (s *DBServer) get(id string) string {
 	return s.Storage.Get(id)
 }
 
-func (s *Server) update(id string, value string) string {
+func (s *DBServer) update(id string, value string) string {
 	return s.Storage.Set(id, value)
 }
 
-func (s *Server) remove(id string) string {
+func (s *DBServer) remove(id string) string {
 	return s.Storage.Remove(id)
 }
