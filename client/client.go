@@ -20,19 +20,21 @@ along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 package client
 
 import (
-	encoder "encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 
 	"github.com/vaelen/db/server"
+	"github.com/vaelen/db/api"
+	"github.com/golang/protobuf/proto"
 )
 
 // Client is an instance of the database client
 type Client struct {
 	Logger *log.Logger
 	conn   net.Conn
+	m api.Multiplexer
 }
 
 // New creates a new Client instance
@@ -53,12 +55,13 @@ func (c *Client) Connect(address server.ListenAddress) error {
 		return nil
 	}
 	c.conn = conn
+	c.m = api.Multiplexer{ Stream: conn }
 	return nil
 }
 
-// Command excutes a database command on the server
-func (c *Client) Command(command server.Command) server.Response {
-	response := server.Response{}
+// Command executes a database command on the server
+func (c *Client) Command(command *api.Command) *api.Response {
+	response := &api.Response{}
 
 	if c.conn == nil {
 		c.Logger.Printf("Error - Not Connected\n")
@@ -66,17 +69,27 @@ func (c *Client) Command(command server.Command) server.Response {
 		return response
 	}
 
-	enc := encoder.NewEncoder(c.conn)
-	dec := encoder.NewDecoder(c.conn)
-
-	err := enc.Encode(&command)
+	buf, err := proto.Marshal(command)
 	if err != nil {
 		c.Logger.Printf("Encoding error: %s\n", err.Error())
 		response.Error = err.Error()
 		return response
 	}
+	err = c.m.Send(buf)
+	if err != nil {
+		c.Logger.Printf("Sending error: %s\n", err.Error())
+		response.Error = err.Error()
+		return response
+	}
 
-	err = dec.Decode(&response)
+	buf, err = c.m.Receive()
+	if err != nil {
+		c.Logger.Printf("Receiving error: %s\n", err.Error())
+		response.Error = err.Error()
+		return response
+	}
+
+	err = proto.Unmarshal(buf, response)
 	if err != nil {
 		c.Logger.Printf("Decoding error: %s\n", err.Error())
 		response.Error = err.Error()
@@ -88,8 +101,8 @@ func (c *Client) Command(command server.Command) server.Response {
 
 // Time returns the server's current timestamp
 func (c *Client) Time() (string, error) {
-	command := server.Command{
-		Type: server.TimeCommand,
+	command := &api.Command{
+		Type: api.Command_TIME,
 	}
 	response := c.Command(command)
 	if response.Error != "" {
@@ -100,8 +113,8 @@ func (c *Client) Time() (string, error) {
 
 // Get returns a value from the server
 func (c *Client) Get(id string) (string, error) {
-	command := server.Command{
-		Type: server.GetCommand,
+	command := &api.Command{
+		Type: api.Command_GET,
 		ID:   id,
 	}
 	response := c.Command(command)
@@ -114,8 +127,8 @@ func (c *Client) Get(id string) (string, error) {
 
 // Update sets a value on the server
 func (c *Client) Update(id string, value string) error {
-	command := server.Command{
-		Type:  server.UpdateCommand,
+	command := &api.Command{
+		Type:  api.Command_SET,
 		ID:    id,
 		Value: value,
 	}
@@ -136,8 +149,8 @@ func (c *Client) Close() {
 
 // Remove removes a value from the database server
 func (c *Client) Remove(id string) (string, error) {
-	command := server.Command{
-		Type: server.RemoveCommand,
+	command := &api.Command{
+		Type: api.Command_REMOVE,
 		ID:   id,
 	}
 	response := c.Command(command)

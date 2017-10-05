@@ -20,7 +20,6 @@ along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 package server
 
 import (
-	encoder "encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -29,40 +28,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/vaelen/db/storage"
+	"github.com/vaelen/db/api"
 )
-
-// CommandType represents the type of a server command
-type CommandType uint8
-
-const (
-	// TimeCommand returns the server's current timestamp.
-	TimeCommand CommandType = 1
-	// GetCommand returns a value
-	GetCommand CommandType = 2
-	// UpdateCommand updates a value
-	UpdateCommand CommandType = 3
-	// RemoveCommand removes a value
-	RemoveCommand CommandType = 4
-)
-
-// Command is a server command
-type Command struct {
-	Type  CommandType
-	ID    string
-	Value string
-}
-
-// Response is returned from a server command
-type Response struct {
-	ID    string
-	Value string
-	Error string
-}
-
-func (r *Response) String() string {
-	return fmt.Sprintf("Response [ID: %X, Value: %s, Error: %s]", r.ID, r.Value, r.Error)
-}
 
 // Server is an instance of the database server
 type Server struct {
@@ -199,36 +169,51 @@ func (s *Server) connectionHandler(c net.Conn) {
 	// We don't do much yet
 	t := time.Now()
 
-	enc := encoder.NewEncoder(c)
-	dec := encoder.NewDecoder(c)
+	m := api.Multiplexer{ Stream: c }
 
 	for {
-		command := Command{}
-		response := Response{}
-		err := dec.Decode(&command)
+		command := api.Command{}
+		response := api.Response{}
+
+		// Read message
+		buf, err := m.Receive()
 		if err == io.EOF {
 			// Done
 			break
-		} else if err != nil {
+		}
+		if err == nil {
+			err = proto.Unmarshal(buf, &command)
+		}
+
+		if err != nil {
 			response.Error = err.Error()
 		} else {
 			id := command.ID
 			value := command.Value
 			switch command.Type {
-			case TimeCommand:
+			case api.Command_TIME:
 				response.Value = fmt.Sprintf("Hello! The time is currently %s.\n",
 					t.Format(time.RFC3339))
-			case GetCommand:
+			case api.Command_GET:
 				v := s.get(id)
 				response.ID = id
 				response.Value = v
-			case UpdateCommand:
+			case api.Command_SET:
 				v := s.update(id, value)
 				response.ID = id
 				response.Value = v
 			}
 		}
-		enc.Encode(&response)
+
+		buf, err = proto.Marshal(&response)
+		if err != nil {
+			s.Logger.Printf("Error marshalling response: %s\n", err.Error())
+		} else {
+			err = m.Send(buf)
+			if err != nil {
+				s.Logger.Printf("Error sending response: %s\n", err.Error())
+			}
+		}
 	}
 
 	c.Close()
