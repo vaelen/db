@@ -121,7 +121,6 @@ func (c *DBClient) Get(id string) (string, error) {
 	if response.Error != "" {
 		return "", fmt.Errorf(response.Error)
 	}
-	c.Logger.Printf("Get - %s\n", response.String())
 	return response.Value, nil
 }
 
@@ -157,6 +156,5 @@ func (c *DBClient) Remove(id string) (string, error) {
 	if response.Error != "" {
 		return "", fmt.Errorf(response.Error)
 	}
-	c.Logger.Printf("Remove - %s\n", response.String())
 	return response.Value, nil
 }
