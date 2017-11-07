@@ -24,23 +24,30 @@ import (
 	"github.com/vaelen/db/server"
 	"testing"
 	"fmt"
+	"net"
+	"log"
+	"google.golang.org/grpc"
+	"github.com/vaelen/db/api"
 )
 
 func TestDBClient(t *testing.T) {
 	testPort := 30000
-	address := server.ListenAddress{
-		NetworkType: "tcp",
-		Address:     fmt.Sprintf("localhost:%d", testPort),
-	}
+	address := fmt.Sprintf("localhost:%d", testPort)
 
 	s := server.New(os.Stdout, "")
-	addresses := make([]server.ListenAddress, 1)
-	addresses[0] = address
-	go s.Start(addresses)
-	defer func() { s.Shutdown <- true }()
+	defer func() { s.Stop() }()
+
+	lis, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	api.RegisterDatabaseServer(grpcServer, s)
+	go grpcServer.Serve(lis)
+	defer func() { grpcServer.Stop() }()
 
 	c := New(os.Stderr)
-	err := c.Connect(address)
+	err = c.Connect(address)
 	if err != nil {
 		t.Fatalf("Connect Error: %s\n", err.Error())
 	}

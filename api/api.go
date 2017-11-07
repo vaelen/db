@@ -17,6 +17,8 @@ GNU General Public License for more details.
 along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 ******/
 
+//go:generate protoc vdb.proto --go_out=plugins=grpc:.
+
 package api
 
 import (

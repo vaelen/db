@@ -20,21 +20,19 @@ along with Vaelen/DB.  If not, see <http://www.gnu.org/licenses/>.
 package client
 
 import (
-	"fmt"
 	"io"
 	"log"
-	"net"
 
-	"github.com/vaelen/db/server"
 	"github.com/vaelen/db/api"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc"
+	"context"
 )
 
 // DBClient is an instance of the database client
 type DBClient struct {
 	Logger *log.Logger
-	conn   net.Conn
-	m api.Multiplexer
+	conn   *grpc.ClientConn
+	client api.DatabaseClient
 }
 
 // New creates a new DBClient instance
@@ -45,96 +43,17 @@ func New(logWriter io.Writer) *DBClient {
 }
 
 // Connect to a database server
-func (c *DBClient) Connect(address server.ListenAddress) error {
+func (c *DBClient) Connect(address string) error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
 	}
-	conn, err := net.Dial(address.NetworkType, address.Address)
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		return nil
+		return err
 	}
 	c.conn = conn
-	c.m = api.Multiplexer{ Stream: conn }
-	return nil
-}
-
-// Command executes a database command on the server
-func (c *DBClient) Command(command *api.Command) *api.Response {
-	response := &api.Response{}
-
-	if c.conn == nil {
-		c.Logger.Printf("Error - Not Connected\n")
-		response.Error = "Not Connected"
-		return response
-	}
-
-	buf, err := proto.Marshal(command)
-	if err != nil {
-		c.Logger.Printf("Encoding error: %s\n", err.Error())
-		response.Error = err.Error()
-		return response
-	}
-	err = c.m.Send(buf)
-	if err != nil {
-		c.Logger.Printf("Sending error: %s\n", err.Error())
-		response.Error = err.Error()
-		return response
-	}
-
-	buf, err = c.m.Receive()
-	if err != nil {
-		c.Logger.Printf("Receiving error: %s\n", err.Error())
-		response.Error = err.Error()
-		return response
-	}
-
-	err = proto.Unmarshal(buf, response)
-	if err != nil {
-		c.Logger.Printf("Decoding error: %s\n", err.Error())
-		response.Error = err.Error()
-		return response
-	}
-
-	return response
-}
-
-// Time returns the server's current timestamp
-func (c *DBClient) Time() (string, error) {
-	command := &api.Command{
-		Type: api.Command_TIME,
-	}
-	response := c.Command(command)
-	if response.Error != "" {
-		return "", fmt.Errorf(response.Error)
-	}
-	return response.Value, nil
-}
-
-// Get returns a value from the server
-func (c *DBClient) Get(id string) (string, error) {
-	command := &api.Command{
-		Type: api.Command_GET,
-		ID:   id,
-	}
-	response := c.Command(command)
-	if response.Error != "" {
-		return "", fmt.Errorf(response.Error)
-	}
-	return response.Value, nil
-}
-
-// Set sets a value on the server
-func (c *DBClient) Set(id string, value string) error {
-	command := &api.Command{
-		Type:  api.Command_SET,
-		ID:    id,
-		Value: value,
-	}
-	response := c.Command(command)
-	if response.Error != "" {
-		return fmt.Errorf(response.Error)
-	}
+	c.client = api.NewDatabaseClient(c.conn)
 	return nil
 }
 
@@ -146,15 +65,28 @@ func (c *DBClient) Close() {
 	}
 }
 
+// Time returns the server's current timestamp
+func (c *DBClient) Time() (string, error) {
+	response, err := c.client.Time(context.Background(), &api.EmptyRequest{})
+	return response.Value, err
+}
+
+// Get returns a value from the server
+func (c *DBClient) Get(id string) (string, error) {
+	response, err := c.client.Get(context.Background(), &api.IDRequest{ ID: id })
+	return response.Value, err
+}
+
+// Set sets a value on the server
+func (c *DBClient) Set(id string, value string) error {
+	_, err := c.client.Set(context.Background(), &api.IDValueRequest{ ID: id, Value: value })
+	return err
+}
+
 // Remove removes a value from the database server
 func (c *DBClient) Remove(id string) (string, error) {
-	command := &api.Command{
-		Type: api.Command_REMOVE,
-		ID:   id,
-	}
-	response := c.Command(command)
-	if response.Error != "" {
-		return "", fmt.Errorf(response.Error)
-	}
-	return response.Value, nil
+	response, err := c.client.Remove(context.Background(), &api.IDRequest{ ID: id })
+	return response.Value, err
 }
+
+

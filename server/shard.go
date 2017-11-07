@@ -23,7 +23,7 @@ package server
 import (
 	"hash/fnv"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // Shard represents a single shard in the system that can contain some set of chunks

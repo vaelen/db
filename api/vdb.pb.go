@@ -8,7 +8,9 @@ It is generated from these files:
 	vdb.proto
 
 It has these top-level messages:
-	Command
+	EmptyRequest
+	IDRequest
+	IDValueRequest
 	Response
 */
 package api
@@ -16,6 +18,11 @@ package api
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -28,62 +35,48 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type Command_Type int32
-
-const (
-	Command_UNKNOWN Command_Type = 0
-	Command_TIME    Command_Type = 1
-	Command_GET     Command_Type = 2
-	Command_SET     Command_Type = 3
-	Command_REMOVE  Command_Type = 4
-)
-
-var Command_Type_name = map[int32]string{
-	0: "UNKNOWN",
-	1: "TIME",
-	2: "GET",
-	3: "SET",
-	4: "REMOVE",
-}
-var Command_Type_value = map[string]int32{
-	"UNKNOWN": 0,
-	"TIME":    1,
-	"GET":     2,
-	"SET":     3,
-	"REMOVE":  4,
+type EmptyRequest struct {
 }
 
-func (x Command_Type) String() string {
-	return proto.EnumName(Command_Type_name, int32(x))
-}
-func (Command_Type) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0, 0} }
+func (m *EmptyRequest) Reset()                    { *m = EmptyRequest{} }
+func (m *EmptyRequest) String() string            { return proto.CompactTextString(m) }
+func (*EmptyRequest) ProtoMessage()               {}
+func (*EmptyRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-type Command struct {
-	Type  Command_Type `protobuf:"varint,1,opt,name=type,enum=api.Command_Type" json:"type,omitempty"`
-	ID    string       `protobuf:"bytes,2,opt,name=ID" json:"ID,omitempty"`
-	Value string       `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+type IDRequest struct {
+	ID string `protobuf:"bytes,1,opt,name=ID,json=iD" json:"ID,omitempty"`
 }
 
-func (m *Command) Reset()                    { *m = Command{} }
-func (m *Command) String() string            { return proto.CompactTextString(m) }
-func (*Command) ProtoMessage()               {}
-func (*Command) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (m *IDRequest) Reset()                    { *m = IDRequest{} }
+func (m *IDRequest) String() string            { return proto.CompactTextString(m) }
+func (*IDRequest) ProtoMessage()               {}
+func (*IDRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-func (m *Command) GetType() Command_Type {
-	if m != nil {
-		return m.Type
-	}
-	return Command_UNKNOWN
-}
-
-func (m *Command) GetID() string {
+func (m *IDRequest) GetID() string {
 	if m != nil {
 		return m.ID
 	}
 	return ""
 }
 
-func (m *Command) GetValue() string {
+type IDValueRequest struct {
+	ID    string `protobuf:"bytes,1,opt,name=ID,json=iD" json:"ID,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (m *IDValueRequest) Reset()                    { *m = IDValueRequest{} }
+func (m *IDValueRequest) String() string            { return proto.CompactTextString(m) }
+func (*IDValueRequest) ProtoMessage()               {}
+func (*IDValueRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *IDValueRequest) GetID() string {
+	if m != nil {
+		return m.ID
+	}
+	return ""
+}
+
+func (m *IDValueRequest) GetValue() string {
 	if m != nil {
 		return m.Value
 	}
@@ -91,22 +84,13 @@ func (m *Command) GetValue() string {
 }
 
 type Response struct {
-	ID    string `protobuf:"bytes,1,opt,name=ID" json:"ID,omitempty"`
-	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
-	Error string `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
+	Value string `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
 }
 
 func (m *Response) Reset()                    { *m = Response{} }
 func (m *Response) String() string            { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()               {}
-func (*Response) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
-
-func (m *Response) GetID() string {
-	if m != nil {
-		return m.ID
-	}
-	return ""
-}
+func (*Response) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 func (m *Response) GetValue() string {
 	if m != nil {
@@ -115,34 +99,199 @@ func (m *Response) GetValue() string {
 	return ""
 }
 
-func (m *Response) GetError() string {
-	if m != nil {
-		return m.Error
-	}
-	return ""
+func init() {
+	proto.RegisterType((*EmptyRequest)(nil), "api.EmptyRequest")
+	proto.RegisterType((*IDRequest)(nil), "api.IDRequest")
+	proto.RegisterType((*IDValueRequest)(nil), "api.IDValueRequest")
+	proto.RegisterType((*Response)(nil), "api.Response")
 }
 
-func init() {
-	proto.RegisterType((*Command)(nil), "api.Command")
-	proto.RegisterType((*Response)(nil), "api.Response")
-	proto.RegisterEnum("api.Command_Type", Command_Type_name, Command_Type_value)
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for Database service
+
+type DatabaseClient interface {
+	Time(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*Response, error)
+	Get(ctx context.Context, in *IDRequest, opts ...grpc.CallOption) (*Response, error)
+	Set(ctx context.Context, in *IDValueRequest, opts ...grpc.CallOption) (*Response, error)
+	Remove(ctx context.Context, in *IDRequest, opts ...grpc.CallOption) (*Response, error)
+}
+
+type databaseClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewDatabaseClient(cc *grpc.ClientConn) DatabaseClient {
+	return &databaseClient{cc}
+}
+
+func (c *databaseClient) Time(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := grpc.Invoke(ctx, "/api.Database/Time", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *databaseClient) Get(ctx context.Context, in *IDRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := grpc.Invoke(ctx, "/api.Database/Get", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *databaseClient) Set(ctx context.Context, in *IDValueRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := grpc.Invoke(ctx, "/api.Database/Set", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *databaseClient) Remove(ctx context.Context, in *IDRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := grpc.Invoke(ctx, "/api.Database/Remove", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Database service
+
+type DatabaseServer interface {
+	Time(context.Context, *EmptyRequest) (*Response, error)
+	Get(context.Context, *IDRequest) (*Response, error)
+	Set(context.Context, *IDValueRequest) (*Response, error)
+	Remove(context.Context, *IDRequest) (*Response, error)
+}
+
+func RegisterDatabaseServer(s *grpc.Server, srv DatabaseServer) {
+	s.RegisterService(&_Database_serviceDesc, srv)
+}
+
+func _Database_Time_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseServer).Time(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Database/Time",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseServer).Time(ctx, req.(*EmptyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Database_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Database/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseServer).Get(ctx, req.(*IDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Database_Set_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IDValueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseServer).Set(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Database/Set",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseServer).Set(ctx, req.(*IDValueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Database_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseServer).Remove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Database/Remove",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseServer).Remove(ctx, req.(*IDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Database_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.Database",
+	HandlerType: (*DatabaseServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Time",
+			Handler:    _Database_Time_Handler,
+		},
+		{
+			MethodName: "Get",
+			Handler:    _Database_Get_Handler,
+		},
+		{
+			MethodName: "Set",
+			Handler:    _Database_Set_Handler,
+		},
+		{
+			MethodName: "Remove",
+			Handler:    _Database_Remove_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "vdb.proto",
 }
 
 func init() { proto.RegisterFile("vdb.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 206 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2c, 0x4b, 0x49, 0xd2,
-	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0x9a, 0xcc, 0xc8, 0xc5, 0xee,
-	0x9c, 0x9f, 0x9b, 0x9b, 0x98, 0x97, 0x22, 0xa4, 0xca, 0xc5, 0x52, 0x52, 0x59, 0x90, 0x2a, 0xc1,
-	0xa8, 0xc0, 0xa8, 0xc1, 0x67, 0x24, 0xa8, 0x97, 0x58, 0x90, 0xa9, 0x07, 0x95, 0xd3, 0x0b, 0xa9,
-	0x2c, 0x48, 0x0d, 0x02, 0x4b, 0x0b, 0xf1, 0x71, 0x31, 0x79, 0xba, 0x48, 0x30, 0x29, 0x30, 0x6a,
-	0x70, 0x06, 0x31, 0x79, 0xba, 0x08, 0x89, 0x70, 0xb1, 0x96, 0x25, 0xe6, 0x94, 0xa6, 0x4a, 0x30,
-	0x83, 0x85, 0x20, 0x1c, 0x25, 0x6b, 0x2e, 0x16, 0x90, 0x1e, 0x21, 0x6e, 0x2e, 0xf6, 0x50, 0x3f,
-	0x6f, 0x3f, 0xff, 0x70, 0x3f, 0x01, 0x06, 0x21, 0x0e, 0x2e, 0x96, 0x10, 0x4f, 0x5f, 0x57, 0x01,
-	0x46, 0x21, 0x76, 0x2e, 0x66, 0x77, 0xd7, 0x10, 0x01, 0x26, 0x10, 0x23, 0xd8, 0x35, 0x44, 0x80,
-	0x59, 0x88, 0x8b, 0x8b, 0x2d, 0xc8, 0xd5, 0xd7, 0x3f, 0xcc, 0x55, 0x80, 0x45, 0xc9, 0x8d, 0x8b,
-	0x23, 0x28, 0xb5, 0xb8, 0x20, 0x3f, 0xaf, 0x18, 0x66, 0x1d, 0x23, 0xa6, 0x75, 0x4c, 0x48, 0xd6,
-	0x81, 0x44, 0x53, 0x8b, 0x8a, 0xf2, 0x8b, 0x60, 0x8e, 0x00, 0x73, 0x92, 0xd8, 0xc0, 0x3e, 0x35,
-	0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x9d, 0x20, 0x45, 0x57, 0xf6, 0x00, 0x00, 0x00,
+	// 208 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x2c, 0x4b, 0x49, 0xd2,
+	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0xe2, 0xe3, 0xe2, 0x71, 0xcd,
+	0x2d, 0x28, 0xa9, 0x0c, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x51, 0x92, 0xe6, 0xe2, 0xf4, 0x74,
+	0x81, 0x72, 0x84, 0xf8, 0xb8, 0x98, 0x3c, 0x5d, 0x24, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0x98,
+	0x32, 0x5d, 0x94, 0xcc, 0xb8, 0xf8, 0x3c, 0x5d, 0xc2, 0x12, 0x73, 0x4a, 0x53, 0x71, 0xa8, 0x10,
+	0x12, 0xe1, 0x62, 0x2d, 0x03, 0xc9, 0x4b, 0x30, 0x81, 0x85, 0x20, 0x1c, 0x25, 0x05, 0x2e, 0x8e,
+	0xa0, 0xd4, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0x84, 0x0a, 0x46, 0x24, 0x15, 0x46, 0xdb, 0x18,
+	0xb9, 0x38, 0x5c, 0x12, 0x4b, 0x12, 0x93, 0x12, 0x8b, 0x53, 0x85, 0xb4, 0xb8, 0x58, 0x42, 0x32,
+	0x73, 0x53, 0x85, 0x04, 0xf5, 0x12, 0x0b, 0x32, 0xf5, 0x90, 0x9d, 0x27, 0xc5, 0x0b, 0x16, 0x82,
+	0x19, 0xa6, 0xc4, 0x20, 0xa4, 0xc6, 0xc5, 0xec, 0x9e, 0x5a, 0x22, 0xc4, 0x07, 0x16, 0x87, 0xbb,
+	0x1c, 0x53, 0x9d, 0x36, 0x17, 0x73, 0x70, 0x6a, 0x89, 0x90, 0x30, 0x54, 0x1d, 0xb2, 0x27, 0x30,
+	0x15, 0x6b, 0x72, 0xb1, 0x05, 0xa5, 0xe6, 0xe6, 0x97, 0xa5, 0x12, 0x34, 0x37, 0x89, 0x0d, 0x1c,
+	0x96, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x05, 0x03, 0x79, 0x46, 0x58, 0x01, 0x00, 0x00,
 }

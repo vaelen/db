@@ -21,11 +21,8 @@ package main
 
 import (
 	"os"
-
 	"github.com/abiosoft/ishell"
-
 	"github.com/vaelen/db/client"
-	"github.com/vaelen/db/server"
 )
 
 func Start() {
@@ -47,7 +44,7 @@ func Start() {
 				return
 			}
 			shell.Printf("Connecting to %s...\n", c.Args[0])
-			err := db.Connect(server.ListenAddress{NetworkType: "tcp", Address: c.Args[0]})
+			err := db.Connect(c.Args[0])
 			if err != nil {
 				c.Printf("Error: %s\n", err)
 				return
@@ -127,7 +124,7 @@ func Start() {
 	}
 
 	shell.Printf("Connecting to %s...\n", address)
-	err := db.Connect(server.ListenAddress{NetworkType: "tcp", Address: address})
+	err := db.Connect(address)
 	if err != nil {
 		shell.Printf("Error: %s\n", err.Error())
 	}

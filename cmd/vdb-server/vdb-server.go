@@ -23,8 +23,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	//	"time"
 	"github.com/vaelen/db/server"
+	"google.golang.org/grpc"
+	"net"
+	"log"
+	"os/signal"
+	"github.com/vaelen/db/api"
 )
 
 func main() {
@@ -52,8 +56,38 @@ func main() {
 	}
 
 	s := server.New(os.Stderr, dbPath)
-	addresses := make([]server.ListenAddress, 0, 1)
-	addresses = append(addresses, server.ListenAddress{NetworkType: "tcp", Address: ":5555"})
 
-	s.Start(addresses)
+	lis, err := net.Listen("tcp", ":5555")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	api.RegisterDatabaseServer(grpcServer, s)
+
+	// Handle signals nicely
+	signalHandler := make(chan os.Signal)
+	signal.Notify(signalHandler, os.Interrupt, os.Kill)
+	go func(s *server.DBServer) {
+		for {
+			select {
+			case sig := <-signalHandler:
+				// Handle signal
+				s.Logger.Printf("Caught Signal: %s\n", sig)
+				switch sig {
+				case os.Interrupt:
+					s.Stop()
+					grpcServer.Stop()
+					break
+				case os.Kill:
+					s.Stop()
+					grpcServer.Stop()
+					break
+				default:
+					s.Logger.Printf("Signal Ignored\n")
+				}
+			}
+		}
+	}(s)
+	grpc.WithInsecure()
+	grpcServer.Serve(lis)
 }
